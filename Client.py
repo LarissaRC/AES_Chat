@@ -23,6 +23,7 @@ def derive_key_from_int(value):
 
     return key
 
+# Geração da chave AES
 def genetare_AES_key(df_secret_value):
     AES_key = derive_key_from_int(df_secret_value)
     return AES_key
