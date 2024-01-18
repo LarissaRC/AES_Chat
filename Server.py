@@ -10,7 +10,7 @@ init(autoreset=True)
 # Dicionário para armazenar as conexões dos clientes e seus nomes
 clientes = {}
 
-def send_message(sender_name, recipient_name, message):
+def send_DF_message(sender_name, recipient_name, message):
     for address, connection_info in clientes.items():
         if connection_info["name"] == recipient_name:
 
@@ -19,6 +19,22 @@ def send_message(sender_name, recipient_name, message):
                 "sender_name": sender_name,
                 "recipient_name": recipient_name,
                 "message": message
+            }
+
+            # Envia a mensagem criptografada
+            connection_info["socket"].send(json.dumps(message_info, ensure_ascii=False).encode())
+
+def send_message(sender_name, recipient_name, message, nonce, tag):
+    for address, connection_info in clientes.items():
+        if connection_info["name"] == recipient_name:
+
+            # Prepara os dados para envio
+            message_info = {
+                "sender_name": sender_name,
+                "recipient_name": recipient_name,
+                "message": message,
+                "nonce": nonce,
+                "tag": tag
             }
 
             # Envia a mensagem criptografada
@@ -71,8 +87,15 @@ def handle_client(client_socket, client_address):
                 recipient_name = message_info.get("recipient_name", "")
                 message = message_info.get("message", "")
 
-                # Encaminha a mensagem para o destinatário, se estiver online
-                send_message(sender_name, recipient_name, message)
+                # Verifica se é uma mensagem criptografada
+                if 'nonce' in message_info:
+                    nonce = message_info.get("nonce", "")
+                    tag = message_info.get("tag", "")
+                    # Encaminha a mensagem para o destinatário
+                    send_message(sender_name, recipient_name, message, nonce, tag)
+                else:
+                    # Encaminha a mensagem para o destinatário, no caso, uma mensagem diffi-hellman
+                    send_DF_message(sender_name, recipient_name, message)
 
             except Exception as e:
                 print(f"Erro ao lidar com o cliente {Fore.YELLOW}{client_address}: {Fore.RED}{str(e)}{Fore.RESET}")

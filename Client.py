@@ -5,6 +5,7 @@ import sqlite3
 import base64
 from colorama import Fore, init
 from DiffieHellman import DiffieHellman
+from AES import encrypt_message, decrypt_message
 import hashlib
 
 # Inicializa o colorama
@@ -140,9 +141,21 @@ def receive_messages(client_socket):
             message = message_info.get("message", "")
 
             # Verifica se é de fato uma mensagem ou se é uma solicitação de Diffie-Hellman
-            if type(message) != type(''):
+            if 'nonce' not in message_info:
                 receiver_diffie_hellman(client, message_info)
             else:
+                encrypted_message_base64 = message_info.get("message", "")
+                nonce_base64 = message_info.get("nonce", "")
+                tag_base64 = message_info.get("tag", "")
+
+                # Converte a mensagem Base64 de volta para bytes
+                encrypted_message = base64.b64decode(encrypted_message_base64)
+                nonce = base64.b64decode(nonce_base64)
+                tag = base64.b64decode(tag_base64)
+                
+                # Descriptografa a mensagem
+                message = decrypt_message(encrypted_message, clients_shared_keys[sender_name]["AES_key"], nonce, tag)
+
                 # Imprime a mensagem recebida
                 print(f"{Fore.YELLOW}[{sender_name}]:{Fore.RESET} {message}")
         except Exception as e:
@@ -193,9 +206,11 @@ def authenticate_and_start_client():
             # Reinicia a iteração para iniciar uma nova conversa
             continue
         elif recipient_name.lower() == 'df':
+            # Mostrar os valores gerados na troca diffie-hellman
             show_DF()
             continue
         elif recipient_name.lower() == 'keys':
+            # Mostrar as chaves AES geradas
             show_AES_key()
             continue
 
@@ -210,8 +225,10 @@ def authenticate_and_start_client():
                     # Encerra a conversa atual e reinicia a iteração para iniciar uma nova conversa
                     break
 
+                encrypted_message, nonce, tag = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
                 message_info = {"sender_name": name, "recipient_name": recipient_name,
-                                "message": message}
+                                "message": encrypted_message, "nonce": nonce, "tag": tag}
+                print(message_info)
                 client.send(json.dumps(message_info, ensure_ascii=False).encode())
             except KeyboardInterrupt:
                 print("[+] Cliente encerrado.")
