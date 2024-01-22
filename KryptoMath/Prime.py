@@ -33,6 +33,6 @@ def rand_prime(size):
     prime = 1
 
     while not is_prime(prime):
-        prime = randrange(size)
+        prime = randrange(size, 200000)
 
     return prime

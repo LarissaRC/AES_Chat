@@ -18,3 +18,8 @@ class DH:
     # Calcula o segredo compartilhado
 	def calcSharedSecret(self, privSecret):
 		self.key = (privSecret ** self.privatePrime) % self.sharedPrime
+		return self.key
+	
+	# Calcula um passo individual na troca de múltiplos usuários
+	def calcMultiPublicSecret(self, privSecret):
+		return (privSecret ** self.privatePrime)
