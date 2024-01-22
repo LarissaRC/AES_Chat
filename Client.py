@@ -23,6 +23,7 @@ def derive_key_from_int(value):
 
     return key
 
+# Geração da chave AES
 def genetare_AES_key(df_secret_value):
     AES_key = derive_key_from_int(df_secret_value)
     return AES_key
@@ -71,6 +72,16 @@ def sender_diffie_hellman(client_socket, sender_name, receiver_name):
     AES_key = genetare_AES_key(dh.key)
     clients_shared_keys[receiver_name]["AES_key"] = AES_key
 
+    ######################## Prints essenciais #########################
+    print(f"{Fore.GREEN}###################### {Fore.RESET} Diffie-Hellman com o cliente {Fore.YELLOW}{receiver_name}  {Fore.GREEN}######################{Fore.RESET}")
+    print(f"{Fore.YELLOW}Base: {Fore.RESET}{dh.base}")
+    print(f"{Fore.YELLOW}Primo: {Fore.RESET}{dh.sharedPrime}")
+    print(f"{Fore.YELLOW}Valor público gerado: {Fore.RESET}{publicSecret}")
+    print(f"{Fore.YELLOW}Valor público recebido: {Fore.RESET}{clients_shared_keys[receiver_name]['publicSecretReceived']}")
+    print(f"{Fore.YELLOW}Valor secreto gerado: {Fore.RESET}{dh.key}")
+    print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}\n")
+
+
 def receiver_diffie_hellman(client_socket, message_info):
     dh = DiffieHellman.DH()
 
@@ -113,6 +124,15 @@ def receiver_diffie_hellman(client_socket, message_info):
     # Gerar chave AES
     AES_key = genetare_AES_key(dh.key)
     clients_shared_keys[message_info["sender_name"]]["AES_key"] = AES_key
+
+    ######################## Prints essenciais #########################
+    print(f"{Fore.GREEN}###################### {Fore.RESET} Diffie-Hellman com o cliente {Fore.YELLOW}{message_info['sender_name']}  {Fore.GREEN}######################{Fore.RESET}")
+    print(f"{Fore.YELLOW}Base: {Fore.RESET}{dh.base}")
+    print(f"{Fore.YELLOW}Primo: {Fore.RESET}{dh.sharedPrime}")
+    print(f"{Fore.YELLOW}Valor público gerado: {Fore.RESET}{calcedPubSecret}")
+    print(f"{Fore.YELLOW}Valor público recebido: {Fore.RESET}{publicSecret}")
+    print(f"{Fore.YELLOW}Valor secreto gerado: {Fore.RESET}{dh.key}")
+    print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}\n")
 
 def show_DF():
     print("Valores DF gerados:")
@@ -225,10 +245,11 @@ def authenticate_and_start_client():
                     # Encerra a conversa atual e reinicia a iteração para iniciar uma nova conversa
                     break
 
-                encrypted_message, nonce, tag = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
+                encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
                 message_info = {"sender_name": name, "recipient_name": recipient_name,
                                 "message": encrypted_message, "nonce": nonce, "tag": tag}
                 print(message_info)
+                print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
                 client.send(json.dumps(message_info, ensure_ascii=False).encode())
             except KeyboardInterrupt:
                 print("[+] Cliente encerrado.")

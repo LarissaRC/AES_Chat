@@ -5,20 +5,19 @@ def is_prime(number):
     if 0 <= number <= 2:
         return False
 
-    # http://de.wikipedia.org/wiki/Sieb_des_Eratosthenes
+    # https://pt.wikipedia.org/wiki/Crivo_de_Erat%C3%B3stenes
 
     primes = []
 
-    # Array initalisieren
+    # Inicialização do array
     for i in range(number + 1):
         primes.append(True)
 
-    # 0 und 1 von vorne herein ausschließen
+    # Excluindo 0 e 1 desde o início
     primes[0] = False
     primes[1] = False
 
-    # Alle vielfachen von number sind können ausgeschlossen werden
-
+    # Todos os múltiplos de um número primo são excluídos
     for i in range(number + 1):
         if primes[i] is True:
             j = 2 * i
@@ -26,12 +25,10 @@ def is_prime(number):
                 primes[j] = False
                 j += i
 
+    # Ao remover os múltiplos de um número primo, o próximo número que não foi removido é também primo.
     return primes[number] is True
 
-    for i in range(len(primes)):
-        print("{0}: {1}".format(i, primes[i]))
-
-
+# Geração de um primo aleatório
 def rand_prime(size):
     prime = 1
 
