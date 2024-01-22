@@ -19,7 +19,7 @@ def encrypt_message(data, key):
     nonce_base64 = base64.b64encode(nonce).decode()
     tag_base64 = base64.b64encode(tag).decode()
 
-    return ciphertext_base64, nonce_base64, tag_base64
+    return ciphertext_base64, nonce_base64, tag_base64, ciphertext
 
 # Função para decifrar uma mensagem
 

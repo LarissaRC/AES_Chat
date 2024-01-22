@@ -245,10 +245,11 @@ def authenticate_and_start_client():
                     # Encerra a conversa atual e reinicia a iteração para iniciar uma nova conversa
                     break
 
-                encrypted_message, nonce, tag = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
+                encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
                 message_info = {"sender_name": name, "recipient_name": recipient_name,
                                 "message": encrypted_message, "nonce": nonce, "tag": tag}
                 print(message_info)
+                print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
                 client.send(json.dumps(message_info, ensure_ascii=False).encode())
             except KeyboardInterrupt:
                 print("[+] Cliente encerrado.")
