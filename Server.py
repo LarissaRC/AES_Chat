@@ -42,6 +42,16 @@ def send_message(sender_name, recipient_name, message, nonce, tag):
 
 def remove_client(client_address):
     if client_address in clientes:
+        # Informar aos outros clientes que este saiu
+        for client in clientes:
+            if client == client_address:
+                continue
+            message_info = {
+                "sender_name": "server",
+                "recipient_name": clientes[client]["name"],
+                "client_that_left": clientes[client_address]["name"]
+            }
+            clientes[client]["socket"].send(json.dumps(message_info, ensure_ascii=False).encode())
         del clientes[client_address]
 
 def handle_client(client_socket, client_address):
@@ -103,6 +113,7 @@ def handle_client(client_socket, client_address):
                 break
     except Exception as e:
         print(f"Erro durante autenticação do cliente {Fore.YELLOW}{client_address}: {Fore.RED}{str(e)}{Fore.RESET}")
+        remove_client(client_address)  # Remove cliente em caso de erro
 
 def start_server():
     host = '0.0.0.0'

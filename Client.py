@@ -7,6 +7,7 @@ from colorama import Fore, init
 from DiffieHellman import DiffieHellman
 from AES import encrypt_message, decrypt_message
 import hashlib
+from Crypto.Protocol.KDF import PBKDF2
 
 # Inicializa o colorama
 init(autoreset=True)
@@ -19,7 +20,7 @@ def derive_key_from_int(value):
     value_bytes = int_to_bytes(value)
 
     # Usa SHA-256 para derivar uma chave de 256 bits (32 bytes)
-    key = hashlib.sha256(value_bytes).digest()
+    key = PBKDF2(value_bytes, b'', dkLen=32, count=1000000, prf=None)
 
     return key
 
@@ -157,11 +158,14 @@ def receive_messages(client_socket):
 
             # Processa a mensagem recebida
             sender_name = message_info.get("sender_name", "Unknown")
-            recipient_name = message_info.get("recipient_name", "")
             message = message_info.get("message", "")
 
             # Verifica se é de fato uma mensagem ou se é uma solicitação de Diffie-Hellman
-            if 'nonce' not in message_info:
+            if sender_name == 'server':
+                if message_info.get("client_that_left"):
+                    print(f"\n{Fore.RED}{message_info.get('client_that_left')}{Fore.RESET} saiu da aplicação.")
+                    del clients_shared_keys[message_info.get("client_that_left")]
+            elif 'nonce' not in message_info:
                 receiver_diffie_hellman(client, message_info)
             else:
                 encrypted_message_base64 = message_info.get("message", "")
@@ -216,15 +220,12 @@ def authenticate_and_start_client():
         receive_thread.start()
 
         # Informa o nome do destinatário desejado
-        recipient_name = input("[+] Informe o nome do destinatário: ")
+        recipient_name = input("[+] Escolha uma opção: \nexit - sair do programa\nkeys - ver as chaves AES\nusers - ver usuários online\nnome do usuário - iniciar uma conversa\ngroup - entrar no chat em grupo\nopção:")
 
         if recipient_name.lower() == 'exit':
             print("[+] Cliente encerrado.")
             client.close()
             exit()
-        elif recipient_name.lower() == 'new':
-            # Reinicia a iteração para iniciar uma nova conversa
-            continue
         elif recipient_name.lower() == 'df':
             # Mostrar os valores gerados na troca diffie-hellman
             show_DF()
@@ -233,16 +234,38 @@ def authenticate_and_start_client():
             # Mostrar as chaves AES geradas
             show_AES_key()
             continue
+        elif recipient_name.lower() == 'users':
+            if len(clients_shared_keys) == 0:
+                print(f"{Fore.RED}\nNão há outros usuários online!!\n{Fore.RESET}")
+                continue
+            print("Usuários online:")
+            for user in clients_shared_keys:
+                print(f"{Fore.GREEN}- {user}{Fore.RESET}")
+            continue
+        elif recipient_name.lower() == 'group':
+            # Mostrar as chaves AES geradas
+            is_in_group = True
+            continue
+
+        if recipient_name not in clients_shared_keys:
+            print(f"{Fore.RED}{recipient_name}{Fore.RESET} não está mais na aplicação. Escolha outro usuário.")
+            recipient_name = ""
+            continue
 
         # Envia mensagens para o servidor
         while True:
             try:
                 message = input()
+
+                # Verifica se o usuário escolhido não saiu da aplicação
+                if recipient_name not in clients_shared_keys:
+                    print(f"{Fore.RED}Usuário não está mais online! Escolha outro!{Fore.RESET}")
+                    recipient_name = ""
+                    break
+
                 if message.lower() == 'exit':
                     print("[+] Saindo da conversa.")
-                    break
-                elif message.lower() == 'new':
-                    # Encerra a conversa atual e reinicia a iteração para iniciar uma nova conversa
+                    is_in_group = False
                     break
 
                 encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
@@ -261,6 +284,8 @@ if __name__ == "__main__":
     port = 5555
 
     clients_shared_keys = {}
+    is_in_group = False
+    recipient_name = ""
 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((host, port))
