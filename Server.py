@@ -147,7 +147,18 @@ def handle_client(client_socket, client_address):
                 message = message_info.get("message", "")
 
                 # Verifica se é uma mensagem criptografada
-                if 'nonce' in message_info:
+                if "is_in_group" in message_info:
+                    if message_info.get("is_in_group") == True:
+                        group_clients.append(sender_name)
+                        print(f"{sender_name} {Fore.GREEN}entrou{Fore.RESET} no grupo")
+                    else:
+                        group_clients.remove(sender_name)
+                        print(f"{sender_name} {Fore.RED}saiu{Fore.RESET} no grupo")
+                    
+                    # Avisar os outros usuários que um usuário saiu
+                    for online_client in clientes:
+                        send_group_list("server", clientes[online_client]["name"])
+                elif 'nonce' in message_info:
                     nonce = message_info.get("nonce", "")
                     tag = message_info.get("tag", "")
                     # Encaminha a mensagem para o destinatário

@@ -182,10 +182,15 @@ def receive_messages(client_socket):
                 if message_info.get("client_that_left"):
                     print(f"\n{Fore.RED}{message_info.get('client_that_left')}{Fore.RESET} saiu da aplicação.")
                     del clients_shared_keys[message_info.get("client_that_left")]
-                elif message_info.get("group_list"):
+                elif "group_list" in message_info:
                     group_list = message_info.get("group_list")
-                    print("Clientes presentes no grupo atualmente:")
-                    print(group_list)
+                    if len(group_list) == 1:
+                        print(f"\n{Fore.YELLOW}Você é o único no grupo atualmente\n")
+                    else:
+                        print(f"\nClientes presentes no grupo atualmente:")
+                        for member in group_list:
+                            print(f'{Fore.GREEN}{member}')
+                        print("")
             elif 'nonce' not in message_info:
                 receiver_diffie_hellman(client, message_info)
             else:
@@ -208,7 +213,6 @@ def receive_messages(client_socket):
                 else:
                     # Imprime a mensagem recebida
                     if 'is_group_message' in message_info:
-                        print("Errou aqui")
                         # Descriptografa a mensagem
                         message = decrypt_message(encrypted_message, group_key, nonce, tag)
                         print(f"{Fore.GREEN}[{sender_name}]:{Fore.RESET} {message}")
@@ -294,8 +298,10 @@ def authenticate_and_start_client():
                 print(f"{Fore.GREEN}- {user}{Fore.RESET}")
             continue
         elif recipient_name.lower() == 'group':
-            print("Entrou no grupo")
+            print(f"{Fore.YELLOW}\nEntrou no grupo\n{Fore.RESET}")
             is_in_group = True
+            message_info = {"sender_name": name, "recipient_name": "server", "is_in_group": is_in_group}
+            client.send(json.dumps(message_info, ensure_ascii=False).encode())
         elif recipient_name not in clients_shared_keys:
             print(f"{Fore.RED}{recipient_name}{Fore.RESET} não está mais na aplicação. Escolha outro usuário.")
             recipient_name = ""
@@ -314,7 +320,12 @@ def authenticate_and_start_client():
 
                 if message.lower() == 'exit':
                     print("[+] Saindo da conversa.")
-                    is_in_group = False
+
+                    if is_in_group:
+                        print(f"{Fore.YELLOW}\nSaiu no grupo\n{Fore.RESET}")
+                        is_in_group = False
+                        message_info = {"sender_name": name, "recipient_name": "server", "is_in_group": is_in_group}
+                        client.send(json.dumps(message_info, ensure_ascii=False).encode())
                     break
 
                 if is_in_group:
