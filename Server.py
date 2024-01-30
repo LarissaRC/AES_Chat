@@ -9,6 +9,7 @@ init(autoreset=True)
 
 # Dicionário para armazenar as conexões dos clientes e seus nomes
 clientes = {}
+group_clients = []
 
 def send_DF_message(sender_name, recipient_name, message):
     for address, connection_info in clientes.items():
@@ -35,6 +36,37 @@ def send_message(sender_name, recipient_name, message, nonce, tag):
                 "message": message,
                 "nonce": nonce,
                 "tag": tag
+            }
+
+            # Envia a mensagem criptografada
+            connection_info["socket"].send(json.dumps(message_info, ensure_ascii=False).encode())
+
+def send_group_key(sender_name, recipient_name, message, nonce, tag, group_key):
+    for address, connection_info in clientes.items():
+        if connection_info["name"] == recipient_name:
+
+            # Prepara os dados para envio
+            message_info = {
+                "sender_name": sender_name,
+                "recipient_name": recipient_name,
+                "message": message,
+                "nonce": nonce,
+                "tag": tag,
+                "is_group_key": True
+            }
+
+            # Envia a mensagem criptografada
+            connection_info["socket"].send(json.dumps(message_info, ensure_ascii=False).encode())
+
+def send_group_list(sender_name, recipient_name):
+    for address, connection_info in clientes.items():
+        if connection_info["name"] == recipient_name:
+
+            # Prepara os dados para envio
+            message_info = {
+                "sender_name": sender_name,
+                "recipient_name": recipient_name,
+                "group_list": group_clients
             }
 
             # Envia a mensagem criptografada
@@ -102,7 +134,10 @@ def handle_client(client_socket, client_address):
                     nonce = message_info.get("nonce", "")
                     tag = message_info.get("tag", "")
                     # Encaminha a mensagem para o destinatário
-                    send_message(sender_name, recipient_name, message, nonce, tag)
+                    if 'is_group_key' in message_info:
+                        send_group_key(sender_name, recipient_name, message, nonce, tag, True)
+                    else:
+                        send_message(sender_name, recipient_name, message, nonce, tag)
                 else:
                     # Encaminha a mensagem para o destinatário, no caso, uma mensagem diffi-hellman
                     send_DF_message(sender_name, recipient_name, message)

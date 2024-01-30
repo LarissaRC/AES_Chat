@@ -8,9 +8,15 @@ from DiffieHellman import DiffieHellman
 from AES import encrypt_message, decrypt_message
 import hashlib
 from Crypto.Protocol.KDF import PBKDF2
+from random import randrange
 
 # Inicializa o colorama
 init(autoreset=True)
+
+global group_key
+global group_list
+group_key = None
+group_list = []
 
 def int_to_bytes(i):
     return i.to_bytes((i.bit_length() + 7) // 8, byteorder='big')
@@ -28,6 +34,11 @@ def derive_key_from_int(value):
 def genetare_AES_key(df_secret_value):
     AES_key = derive_key_from_int(df_secret_value)
     return AES_key
+
+# Geração da chave em grupo
+def genetare_group_key():
+    key = randrange(30000, 60000)
+    return key
 
 def sender_diffie_hellman(client_socket, sender_name, receiver_name):
     dh = DiffieHellman.DH()
@@ -49,7 +60,7 @@ def sender_diffie_hellman(client_socket, sender_name, receiver_name):
         "base": dh.base,
         "prime": dh.sharedPrime,
         "publicSecret": publicSecret,
-        "senderName": sender_name
+        "senderName": sender_name,
     }
 
     message_info = {
@@ -80,7 +91,7 @@ def sender_diffie_hellman(client_socket, sender_name, receiver_name):
     print(f"{Fore.YELLOW}Valor público gerado: {Fore.RESET}{publicSecret}")
     print(f"{Fore.YELLOW}Valor público recebido: {Fore.RESET}{clients_shared_keys[receiver_name]['publicSecretReceived']}")
     print(f"{Fore.YELLOW}Valor secreto gerado: {Fore.RESET}{dh.key}")
-    print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}\n")
+    print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}")
 
 
 def receiver_diffie_hellman(client_socket, message_info):
@@ -146,6 +157,8 @@ def show_AES_key():
         print(f"{Fore.GREEN}- {client_data}{Fore.RESET} {clients_shared_keys[client_data]['AES_key']}")
 
 def receive_messages(client_socket):
+    global group_list
+
     while True:
         try:
             # Recebe mensagens do servidor e imprime na tela
@@ -165,6 +178,10 @@ def receive_messages(client_socket):
                 if message_info.get("client_that_left"):
                     print(f"\n{Fore.RED}{message_info.get('client_that_left')}{Fore.RESET} saiu da aplicação.")
                     del clients_shared_keys[message_info.get("client_that_left")]
+                elif message_info.get("group_list"):
+                    group_list = message_info.get("group_list")
+                    print("Clientes presentes no grupo atualmente:")
+                    print(group_list)
             elif 'nonce' not in message_info:
                 receiver_diffie_hellman(client, message_info)
             else:
@@ -180,13 +197,25 @@ def receive_messages(client_socket):
                 # Descriptografa a mensagem
                 message = decrypt_message(encrypted_message, clients_shared_keys[sender_name]["AES_key"], nonce, tag)
 
-                # Imprime a mensagem recebida
-                print(f"{Fore.YELLOW}[{sender_name}]:{Fore.RESET} {message}")
+                # verifica se é de fato uma mensagem ou se é a chave nova de grupo
+                if "is_group_key" in message_info:
+                    group_key = int(message)
+                    group_key = genetare_AES_key(group_key)
+                    print(f"{Fore.YELLOW}Valor recebido para gerar mensagem em grupo:{Fore.RESET} {group_key}")
+                else:
+                    # Imprime a mensagem recebida
+                    if 'is_group_message' in message_info:
+                        print(f"{Fore.GREEN}[{sender_name}]:{Fore.RESET} {message}")
+                    else:
+                        print(f"{Fore.YELLOW}[{sender_name}]:{Fore.RESET} {message}")
         except Exception as e:
             print(f"Erro ao receber mensagens: {Fore.RED}{str(e)}{Fore.RESET}")
             break
 
 def authenticate_and_start_client():
+    global group_key
+    global group_list
+
     # Autenticação do cliente
     name = input("[+] Informe seu username: ")
 
@@ -211,13 +240,26 @@ def authenticate_and_start_client():
 
     for client_online in clients_online:
         if clients_online[client_online] != name:
-            #print("- " + clients_online[client_online])
             sender_diffie_hellman(client, name, clients_online[client_online])
 
     while True:
         # Inicia uma thread para receber mensagens do servidor
         receive_thread = threading.Thread(target=receive_messages, args=(client,))
         receive_thread.start()
+
+        # Gerar e enviar a chave secreta caso esta ainda não tenha sido gerada
+        if group_key is None:
+            group_key = genetare_group_key()
+            for online_client in clients_shared_keys:
+                encrypted_message, nonce, tag, texto_cifrado = encrypt_message(str(group_key).encode('utf-8'), clients_shared_keys[online_client]["AES_key"])
+                message_info = {"sender_name": name, "recipient_name": online_client,
+                                "message": encrypted_message, "nonce": nonce, "tag": tag, "is_group_key": True}
+                print(message_info)
+                print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
+                client.send(json.dumps(message_info, ensure_ascii=False).encode())
+
+        group_key = genetare_AES_key(group_key)
+        print(f'\n{Fore.YELLOW}Valor compartilhado para gerar chave em grupo: {Fore.RESET}{group_key}\n')
 
         # Informa o nome do destinatário desejado
         recipient_name = input("[+] Escolha uma opção: \nexit - sair do programa\nkeys - ver as chaves AES\nusers - ver usuários online\nnome do usuário - iniciar uma conversa\ngroup - entrar no chat em grupo\nopção:")
@@ -243,11 +285,9 @@ def authenticate_and_start_client():
                 print(f"{Fore.GREEN}- {user}{Fore.RESET}")
             continue
         elif recipient_name.lower() == 'group':
-            # Mostrar as chaves AES geradas
+            print("Entrou no grupo")
             is_in_group = True
-            continue
-
-        if recipient_name not in clients_shared_keys:
+        elif recipient_name not in clients_shared_keys:
             print(f"{Fore.RED}{recipient_name}{Fore.RESET} não está mais na aplicação. Escolha outro usuário.")
             recipient_name = ""
             continue
@@ -258,7 +298,7 @@ def authenticate_and_start_client():
                 message = input()
 
                 # Verifica se o usuário escolhido não saiu da aplicação
-                if recipient_name not in clients_shared_keys:
+                if recipient_name not in clients_shared_keys and is_in_group == False:
                     print(f"{Fore.RED}Usuário não está mais online! Escolha outro!{Fore.RESET}")
                     recipient_name = ""
                     break
@@ -268,12 +308,15 @@ def authenticate_and_start_client():
                     is_in_group = False
                     break
 
-                encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
-                message_info = {"sender_name": name, "recipient_name": recipient_name,
-                                "message": encrypted_message, "nonce": nonce, "tag": tag}
-                print(message_info)
-                print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
-                client.send(json.dumps(message_info, ensure_ascii=False).encode())
+                if is_in_group:
+                    print("vish")
+                else:
+                    encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
+                    message_info = {"sender_name": name, "recipient_name": recipient_name,
+                                    "message": encrypted_message, "nonce": nonce, "tag": tag}
+                    print(message_info)
+                    print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
+                    client.send(json.dumps(message_info, ensure_ascii=False).encode())
             except KeyboardInterrupt:
                 print("[+] Cliente encerrado.")
                 client.close()
