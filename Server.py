@@ -166,7 +166,7 @@ def handle_client(client_socket, client_address):
                         send_group_key(sender_name, recipient_name, message, nonce, tag, True)
                     elif recipient_name == "group":
                         for online_client in clientes:
-                            if clientes[online_client]["name"] == sender_name:
+                            if clientes[online_client]["name"] == sender_name or clientes[online_client]["name"] not in group_clients:
                                 continue
                             send_group_message(sender_name, clientes[online_client]["name"], message, nonce, tag)
                     else:
