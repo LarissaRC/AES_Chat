@@ -9,6 +9,7 @@ from AES import encrypt_message, decrypt_message
 import hashlib
 from Crypto.Protocol.KDF import PBKDF2
 from random import randrange
+import pyfiglet
 
 # Inicializa o colorama
 init(autoreset=True)
@@ -87,13 +88,14 @@ def sender_diffie_hellman(client_socket, sender_name, receiver_name):
     clients_shared_keys[receiver_name]["AES_key"] = AES_key
 
     ######################## Prints essenciais #########################
-    print(f"{Fore.GREEN}###################### {Fore.RESET} Diffie-Hellman com o cliente {Fore.YELLOW}{receiver_name}  {Fore.GREEN}######################{Fore.RESET}")
+    print(f"\n{Fore.GREEN}{'#' * 30}{Fore.RESET} Diffie-Hellman com o cliente {Fore.YELLOW}{receiver_name} {Fore.GREEN}{'#' * 30}{Fore.RESET}")
     print(f"{Fore.YELLOW}Base: {Fore.RESET}{dh.base}")
     print(f"{Fore.YELLOW}Primo: {Fore.RESET}{dh.sharedPrime}")
     print(f"{Fore.YELLOW}Valor público gerado: {Fore.RESET}{publicSecret}")
     print(f"{Fore.YELLOW}Valor público recebido: {Fore.RESET}{clients_shared_keys[receiver_name]['publicSecretReceived']}")
     print(f"{Fore.YELLOW}Valor secreto gerado: {Fore.RESET}{dh.key}")
     print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}")
+    print(f"{Fore.GREEN}{'#' * 92}{Fore.RESET}\n")
 
 
 def receiver_diffie_hellman(client_socket, message_info):
@@ -140,13 +142,14 @@ def receiver_diffie_hellman(client_socket, message_info):
     clients_shared_keys[message_info["sender_name"]]["AES_key"] = AES_key
 
     ######################## Prints essenciais #########################
-    print(f"{Fore.GREEN}###################### {Fore.RESET} Diffie-Hellman com o cliente {Fore.YELLOW}{message_info['sender_name']}  {Fore.GREEN}######################{Fore.RESET}")
+    print(f"\n\n{Fore.GREEN}{'#' * 30}{Fore.RESET} Diffie-Hellman com o cliente {Fore.YELLOW}{message_info['sender_name']} {Fore.GREEN}{'#' * 30}{Fore.RESET}")
     print(f"{Fore.YELLOW}Base: {Fore.RESET}{dh.base}")
     print(f"{Fore.YELLOW}Primo: {Fore.RESET}{dh.sharedPrime}")
     print(f"{Fore.YELLOW}Valor público gerado: {Fore.RESET}{calcedPubSecret}")
     print(f"{Fore.YELLOW}Valor público recebido: {Fore.RESET}{publicSecret}")
     print(f"{Fore.YELLOW}Valor secreto gerado: {Fore.RESET}{dh.key}")
-    print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}\n")
+    print(f"{Fore.YELLOW}Chave AES gerada: {Fore.RESET}{AES_key}")
+    print(f"{Fore.GREEN}{'#' * 92}{Fore.RESET}\n")
 
 def show_DF():
     print("Valores DF gerados:")
@@ -154,9 +157,10 @@ def show_DF():
         print(f"{Fore.GREEN}- {client_data}{Fore.RESET} {clients_shared_keys[client_data]['secretValue']}")
 
 def show_AES_key():
-    print("Chaves AES geradas:")
+    print("\nChaves AES geradas:")
     for client_data in clients_shared_keys:
         print(f"{Fore.GREEN}- {client_data}{Fore.RESET} {clients_shared_keys[client_data]['AES_key']}")
+    print("\n")
 
 def receive_messages(client_socket):
     global group_list
@@ -230,6 +234,7 @@ def authenticate_and_start_client():
     global is_in_group
 
     # Autenticação do cliente
+    print(pyfiglet.figlet_format("Bem vindo!"))
     name = input("[+] Informe seu username: ")
 
     auth_info = {
@@ -275,7 +280,7 @@ def authenticate_and_start_client():
             print(f'\n{Fore.YELLOW}Valor compartilhado para gerar chave em grupo: {Fore.RESET}{group_key}\n')
 
         # Informa o nome do destinatário desejado
-        recipient_name = input("[+] Escolha uma opção: \nexit - sair do programa\nkeys - ver as chaves AES\nusers - ver usuários online\nnome do usuário - iniciar uma conversa\ngroup - entrar no chat em grupo\nopção:")
+        recipient_name = input("[+] Escolha uma opção: \nexit - sair do programa\nkeys - ver as chaves AES\nusers - ver usuários online\nnome do usuário - iniciar uma conversa\ngroup - entrar no chat em grupo\n\nOpção:")
 
         if recipient_name.lower() == 'exit':
             print("[+] Cliente encerrado.")
@@ -293,11 +298,13 @@ def authenticate_and_start_client():
             if len(clients_shared_keys) == 0:
                 print(f"{Fore.RED}\nNão há outros usuários online!!\n{Fore.RESET}")
                 continue
-            print("Usuários online:")
+            print("\nUsuários online:")
             for user in clients_shared_keys:
                 print(f"{Fore.GREEN}- {user}{Fore.RESET}")
+            print("\n")
             continue
         elif recipient_name.lower() == 'group':
+            print(pyfiglet.figlet_format("Chat Grupo"))
             print(f"{Fore.YELLOW}\nEntrou no grupo\n{Fore.RESET}")
             is_in_group = True
             message_info = {"sender_name": name, "recipient_name": "server", "is_in_group": is_in_group}
