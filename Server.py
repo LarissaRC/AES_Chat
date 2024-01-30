@@ -41,6 +41,23 @@ def send_message(sender_name, recipient_name, message, nonce, tag):
             # Envia a mensagem criptografada
             connection_info["socket"].send(json.dumps(message_info, ensure_ascii=False).encode())
 
+def send_group_message(sender_name, recipient_name, message, nonce, tag):
+    for address, connection_info in clientes.items():
+        if connection_info["name"] == recipient_name:
+
+            # Prepara os dados para envio
+            message_info = {
+                "sender_name": sender_name,
+                "recipient_name": recipient_name,
+                "message": message,
+                "nonce": nonce,
+                "tag": tag,
+                "is_group_message": True
+            }
+
+            # Envia a mensagem criptografada
+            connection_info["socket"].send(json.dumps(message_info, ensure_ascii=False).encode())
+
 def send_group_key(sender_name, recipient_name, message, nonce, tag, group_key):
     for address, connection_info in clientes.items():
         if connection_info["name"] == recipient_name:
@@ -136,6 +153,11 @@ def handle_client(client_socket, client_address):
                     # Encaminha a mensagem para o destinatário
                     if 'is_group_key' in message_info:
                         send_group_key(sender_name, recipient_name, message, nonce, tag, True)
+                    elif recipient_name == "group":
+                        for online_client in clientes:
+                            if clientes[online_client]["name"] == sender_name:
+                                continue
+                            send_group_message(sender_name, clientes[online_client]["name"], message, nonce, tag)
                     else:
                         send_message(sender_name, recipient_name, message, nonce, tag)
                 else:

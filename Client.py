@@ -15,8 +15,10 @@ init(autoreset=True)
 
 global group_key
 global group_list
+global is_in_group
 group_key = None
 group_list = []
+is_in_group = False
 
 def int_to_bytes(i):
     return i.to_bytes((i.bit_length() + 7) // 8, byteorder='big')
@@ -158,6 +160,8 @@ def show_AES_key():
 
 def receive_messages(client_socket):
     global group_list
+    global group_key
+    global is_in_group
 
     while True:
         try:
@@ -193,20 +197,24 @@ def receive_messages(client_socket):
                 encrypted_message = base64.b64decode(encrypted_message_base64)
                 nonce = base64.b64decode(nonce_base64)
                 tag = base64.b64decode(tag_base64)
-                
-                # Descriptografa a mensagem
-                message = decrypt_message(encrypted_message, clients_shared_keys[sender_name]["AES_key"], nonce, tag)
 
                 # verifica se é de fato uma mensagem ou se é a chave nova de grupo
                 if "is_group_key" in message_info:
+                    # Descriptografa a mensagem
+                    message = decrypt_message(encrypted_message, clients_shared_keys[sender_name]["AES_key"], nonce, tag)
                     group_key = int(message)
                     group_key = genetare_AES_key(group_key)
                     print(f"{Fore.YELLOW}Valor recebido para gerar mensagem em grupo:{Fore.RESET} {group_key}")
                 else:
                     # Imprime a mensagem recebida
                     if 'is_group_message' in message_info:
+                        print("Errou aqui")
+                        # Descriptografa a mensagem
+                        message = decrypt_message(encrypted_message, group_key, nonce, tag)
                         print(f"{Fore.GREEN}[{sender_name}]:{Fore.RESET} {message}")
                     else:
+                        # Descriptografa a mensagem
+                        message = decrypt_message(encrypted_message, clients_shared_keys[sender_name]["AES_key"], nonce, tag)
                         print(f"{Fore.YELLOW}[{sender_name}]:{Fore.RESET} {message}")
         except Exception as e:
             print(f"Erro ao receber mensagens: {Fore.RED}{str(e)}{Fore.RESET}")
@@ -215,6 +223,7 @@ def receive_messages(client_socket):
 def authenticate_and_start_client():
     global group_key
     global group_list
+    global is_in_group
 
     # Autenticação do cliente
     name = input("[+] Informe seu username: ")
@@ -258,8 +267,8 @@ def authenticate_and_start_client():
                 print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
                 client.send(json.dumps(message_info, ensure_ascii=False).encode())
 
-        group_key = genetare_AES_key(group_key)
-        print(f'\n{Fore.YELLOW}Valor compartilhado para gerar chave em grupo: {Fore.RESET}{group_key}\n')
+            group_key = genetare_AES_key(group_key)
+            print(f'\n{Fore.YELLOW}Valor compartilhado para gerar chave em grupo: {Fore.RESET}{group_key}\n')
 
         # Informa o nome do destinatário desejado
         recipient_name = input("[+] Escolha uma opção: \nexit - sair do programa\nkeys - ver as chaves AES\nusers - ver usuários online\nnome do usuário - iniciar uma conversa\ngroup - entrar no chat em grupo\nopção:")
@@ -309,7 +318,12 @@ def authenticate_and_start_client():
                     break
 
                 if is_in_group:
-                    print("vish")
+                    encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), group_key)
+                    message_info = {"sender_name": name, "recipient_name": "group",
+                                    "message": encrypted_message, "nonce": nonce, "tag": tag}
+                    print(message_info)
+                    print(f"{Fore.GREEN}Mensagem criptografada: {Fore.RESET}{texto_cifrado}")
+                    client.send(json.dumps(message_info, ensure_ascii=False).encode())
                 else:
                     encrypted_message, nonce, tag, texto_cifrado = encrypt_message(message.encode('utf-8'), clients_shared_keys[recipient_name]["AES_key"])
                     message_info = {"sender_name": name, "recipient_name": recipient_name,
@@ -327,7 +341,6 @@ if __name__ == "__main__":
     port = 5555
 
     clients_shared_keys = {}
-    is_in_group = False
     recipient_name = ""
 
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
