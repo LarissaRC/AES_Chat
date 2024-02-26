@@ -7,7 +7,7 @@ from colorama import Fore, init
 from DiffieHellman import DiffieHellman
 from AES import encrypt_message, decrypt_message
 import hashlib
-from Crypto.Protocol.KDF import PBKDF2
+from Cryptodome.Protocol.KDF import PBKDF2
 from random import randrange
 import pyfiglet
 
