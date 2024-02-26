@@ -1,6 +1,6 @@
 
-from Crypto.Cipher import AES
-from Crypto.Protocol.KDF import scrypt
+from Cryptodome.Cipher import AES
+from Cryptodome.Protocol.KDF import scrypt
 import base64
 
 # Função para cifrar uma mensagem

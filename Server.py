@@ -191,7 +191,7 @@ def start_server():
     server.bind((host, port))
     server.listen(5)
 
-    print(f"[+] Servidor escutando em {host}:{port}")
+    print(f"{Fore.GREEN}[+] Servidor escutando em {host}:{port}")
 
     while True:
         client_socket, client_address = server.accept()
