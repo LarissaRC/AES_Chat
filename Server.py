@@ -189,6 +189,8 @@ def handle_client(client_socket, client_address):
                 password_tag = base64.b64decode(password_tag)
                 password = decrypt_message(password, client_key, password_nonce, password_tag)
 
+                print(f"{email} {apelido} {password}")
+
                 logged = cadastrar_cliente(email, apelido, password)
             else:
                 email_nonce = auth_info.get("email_nonce")

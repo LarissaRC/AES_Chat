@@ -305,7 +305,7 @@ def authenticate_and_start_client():
             password = input("[+] Informe sua senha: ")
 
             encrypted_email, email_nonce, email_tag, email_cifrado = encrypt_message(email.encode('utf-8'), server_key)
-            encrypted_apelido, apelido_nonce, apelido_tag, apelido_cifrado = encrypt_message(email.encode('utf-8'), server_key)
+            encrypted_apelido, apelido_nonce, apelido_tag, apelido_cifrado = encrypt_message(apelido.encode('utf-8'), server_key)
             encrypted_password, password_nonce, password_tag, password_cifrado = encrypt_message(password.encode('utf-8'), server_key)
 
             print(f"Email criptografado: {Fore.YELLOW}{email_cifrado}{Fore.RESET}")
