@@ -269,9 +269,18 @@ def authenticate_and_start_client():
             email = input("[+] Informe seu email: ")
             password = input("[+] Informe sua senha: ")
 
+            encrypted_email, email_nonce, email_tag, email_cifrado = encrypt_message(email.encode('utf-8'), server_key)
+            encrypted_password, password_nonce, password_tag, password_cifrado = encrypt_message(password.encode('utf-8'), server_key)
+            print(f"Email criptografado: {Fore.YELLOW}{email_cifrado}{Fore.RESET}")
+            print(f"Senha criptografada: {Fore.YELLOW}{password_cifrado}{Fore.RESET}")
+
             auth_info = {
-                "email": email,
-                "password": password,
+                "email": encrypted_email,
+                "email_nonce": email_nonce,
+                "email_tag": email_tag,
+                "password": encrypted_password,
+                "password_nonce": password_nonce,
+                "password_tag": password_tag,
             }
 
             client.send(json.dumps(auth_info).encode())
@@ -295,10 +304,24 @@ def authenticate_and_start_client():
             apelido = input("[+] Informe seu apelido: ")
             password = input("[+] Informe sua senha: ")
 
+            encrypted_email, email_nonce, email_tag, email_cifrado = encrypt_message(email.encode('utf-8'), server_key)
+            encrypted_apelido, apelido_nonce, apelido_tag, apelido_cifrado = encrypt_message(email.encode('utf-8'), server_key)
+            encrypted_password, password_nonce, password_tag, password_cifrado = encrypt_message(password.encode('utf-8'), server_key)
+
+            print(f"Email criptografado: {Fore.YELLOW}{email_cifrado}{Fore.RESET}")
+            print(f"Apelido criptografado: {Fore.YELLOW}{apelido_cifrado}{Fore.RESET}")
+            print(f"Senha criptografada: {Fore.YELLOW}{password_cifrado}{Fore.RESET}")
+
             auth_info = {
-                "email": email,
-                "apelido": apelido,
-                "password": password,
+                "email": encrypted_email,
+                "email_nonce": email_nonce,
+                "email_tag": email_tag,
+                "apelido": encrypted_apelido,
+                "apelido_nonce": apelido_nonce,
+                "apelido_tag": apelido_tag,
+                "password": encrypted_password,
+                "password_nonce": password_nonce,
+                "password_tag": password_tag,
             }
 
             client.send(json.dumps(auth_info).encode())

@@ -5,6 +5,8 @@ from DiffieHellman import DiffieHellman
 from Cryptodome.Protocol.KDF import PBKDF2
 from colorama import Fore, init
 from BD_creation import fazer_login, cadastrar_cliente, obter_apelidos
+from AES import encrypt_message, decrypt_message
+import base64
 
 # Inicializa o colorama
 init(autoreset=True)
@@ -158,15 +160,49 @@ def handle_client(client_socket, client_address):
             auth_info = json.loads(authentication_data)
 
             email = auth_info.get("email")
-            apelido = auth_info.get("apelido")
+            email = base64.b64decode(email)
             password = auth_info.get("password")
+            password = base64.b64decode(password)
 
             logged = False
             name = ""
 
             if "apelido" in auth_info:
+                apelido = auth_info.get("apelido")
+                apelido = base64.b64decode(apelido)
+
+                email_nonce = auth_info.get("email_nonce")
+                email_nonce = base64.b64decode(email_nonce)
+                email_tag = auth_info.get("email_tag")
+                email_tag = base64.b64decode(email_tag)
+                email = decrypt_message(email, client_key, email_nonce, email_tag)
+
+                apelido_nonce = auth_info.get("apelido_nonce")
+                apelido_nonce = base64.b64decode(apelido_nonce)
+                apelido_tag = auth_info.get("apelido_tag")
+                apelido_tag = base64.b64decode(apelido_tag)
+                apelido = decrypt_message(apelido, client_key, apelido_nonce, apelido_tag)
+
+                password_nonce = auth_info.get("password_nonce")
+                password_nonce = base64.b64decode(password_nonce)
+                password_tag = auth_info.get("password_tag")
+                password_tag = base64.b64decode(password_tag)
+                password = decrypt_message(password, client_key, password_nonce, password_tag)
+
                 logged = cadastrar_cliente(email, apelido, password)
             else:
+                email_nonce = auth_info.get("email_nonce")
+                email_nonce = base64.b64decode(email_nonce)
+                email_tag = auth_info.get("email_tag")
+                email_tag = base64.b64decode(email_tag)
+                email = decrypt_message(email, client_key, email_nonce, email_tag)
+
+                password_nonce = auth_info.get("password_nonce")
+                password_nonce = base64.b64decode(password_nonce)
+                password_tag = auth_info.get("password_tag")
+                password_tag = base64.b64decode(password_tag)
+                password = decrypt_message(password, client_key, password_nonce, password_tag)
+
                 name = fazer_login(email, password)
 
             if name == "" and not logged:
