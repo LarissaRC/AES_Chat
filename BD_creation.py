@@ -30,6 +30,12 @@ def cadastrar_cliente(email, apelido, senha):
         conn.commit()
         conn.close()
         return False
+    # Verifica se o apelido já está cadastrado
+    cursor.execute('SELECT * FROM clientes WHERE apelido=?', (apelido,))
+    if cursor.fetchone() is not None:
+        conn.commit()
+        conn.close()
+        return False
     else:
         # Insere o novo cliente no banco de dados
         hashed_password = hashlib.sha256(senha.encode()).hexdigest()

@@ -236,30 +236,60 @@ def authenticate_and_start_client():
     while True:
         # Autenticação do cliente
         print(pyfiglet.figlet_format("Bem vindo!"))
-        email = input("[+] Informe seu email: ")
-        password = input("[+] Informe sua senha: ")
+        resp = input("Deseja realizar login (1) ou se cadastrar (2)? ")
 
-        auth_info = {
-            "email": email,
-            "password": password,
-        }
+        if resp == "1": # Login
+            email = input("[+] Informe seu email: ")
+            password = input("[+] Informe sua senha: ")
 
-        client.send(json.dumps(auth_info).encode())
-        print("[+] Aguardando autenticação...")
+            auth_info = {
+                "email": email,
+                "password": password,
+            }
 
-        authentication_response = client.recv(1024).decode()
+            client.send(json.dumps(auth_info).encode())
+            print("[+] Aguardando autenticação...")
 
-        message_info = json.loads(authentication_response)
-        logged = message_info.get("logged")
-        name = message_info.get("username")
+            authentication_response = client.recv(1024).decode()
 
-        if not logged:
-            print(f"{Fore.RED}[+] Email ou senha inválidos. Tente novamente{Fore.RESET}")
-            continue
-        else:
-            print(f"[+] {Fore.GREEN}Autenticação bem-sucedida.{Fore.RESET} Conectado ao servidor.")
-            print(f"[+] Seja bem-vindo(a), {Fore.GREEN}{name}.")
-            break
+            message_info = json.loads(authentication_response)
+            logged = message_info.get("logged")
+            name = message_info.get("username")
+
+            if not logged:
+                print(f"{Fore.RED}[+] Email ou senha inválidos. Tente novamente{Fore.RESET}")
+                continue
+            else:
+                print(f"[+] {Fore.GREEN}Autenticação bem-sucedida.{Fore.RESET} Conectado ao servidor.")
+                print(f"[+] Seja bem-vindo(a), {Fore.GREEN}{name}.")
+                break
+        else: # Cadastro
+            email = input("[+] Informe seu email: ")
+            apelido = input("[+] Informe seu apelido: ")
+            password = input("[+] Informe sua senha: ")
+
+            auth_info = {
+                "email": email,
+                "apelido": apelido,
+                "password": password,
+            }
+
+            client.send(json.dumps(auth_info).encode())
+            print("[+] Aguardando autenticação...")
+
+            authentication_response = client.recv(1024).decode()
+
+            message_info = json.loads(authentication_response)
+            logged = message_info.get("logged")
+            name = apelido
+
+            if not logged:
+                print(f"{Fore.RED}[+] Email ou apelido já cadastrados. Tente novamente{Fore.RESET}")
+                continue
+            else:
+                print(f"[+] {Fore.GREEN}Autenticação bem-sucedida.{Fore.RESET} Conectado ao servidor.")
+                print(f"[+] Seja bem-vindo(a), {Fore.GREEN}{name}.")
+                break
 
     data = client.recv(1024).decode()
     clients_online = json.loads(data)

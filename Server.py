@@ -112,23 +112,34 @@ def handle_client(client_socket, client_address):
             auth_info = json.loads(authentication_data)
 
             email = auth_info.get("email")
+            apelido = auth_info.get("apelido")
             password = auth_info.get("password")
 
-            name = fazer_login(email, password)
+            logged = False
+            name = ""
 
-            if name == "":
+            if "apelido" in auth_info:
+                logged = cadastrar_cliente(email, apelido, password)
+            else:
+                name = fazer_login(email, password)
+
+            if name == "" and not logged:
                 # Envia sinal de autenticação mal-sucedida para o cliente
                 message_info = {
                     "logged": False,
                     "username": "",
                 }
                 client_socket.send(json.dumps(message_info).encode())
-            else:
+            elif name != "" or logged:
                 # Envia sinal de autenticação bem-sucedida para o cliente
                 message_info = {
                     "logged": True,
                     "username": name,
                 }
+
+                if logged:
+                    name = apelido
+                    
                 client_socket.send(json.dumps(message_info).encode())
                 break
 
