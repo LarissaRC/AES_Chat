@@ -1,12 +1,10 @@
 import socket
 import threading
 import json
-import sqlite3
 import base64
 from colorama import Fore, init
 from DiffieHellman import DiffieHellman
 from AES import encrypt_message, decrypt_message
-import hashlib
 from Cryptodome.Protocol.KDF import PBKDF2
 from random import randrange
 import pyfiglet
@@ -14,6 +12,7 @@ import pyfiglet
 # Inicializa o colorama
 init(autoreset=True)
 
+global server_key
 global group_key
 global group_list
 global is_in_group
@@ -229,9 +228,37 @@ def receive_messages(client_socket):
             break
 
 def authenticate_and_start_client():
+    global server_key
     global group_key
     global group_list
     global is_in_group
+
+    # Troca de chaves entre servidor e cliente
+    dh = DiffieHellman.DH()
+
+    publicSecret = dh.calcPublicSecret()
+
+    message = {
+        "base": dh.base,
+        "prime": dh.sharedPrime,
+        "publicSecret": publicSecret,
+    }
+    
+    client.send(json.dumps(message, ensure_ascii=False).encode())
+
+    # Recebe o valor público gerado pelo cliente
+    data = client.recv(1024)
+    message_info = json.loads(data)
+    publicSecretReceived = message_info["publicSecret"]
+
+    # Calculça o valor secreto
+    dh.calcSharedSecret(publicSecretReceived)
+
+    # Gerar chave AES
+    AES_key = genetare_AES_key(dh.key)
+    server_key = AES_key
+
+    print(f"\nChave compartilhada com o servidor: {Fore.GREEN}{server_key}{Fore.RESET}")
 
     while True:
         # Autenticação do cliente

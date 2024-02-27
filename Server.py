@@ -1,7 +1,8 @@
 import socket
 import threading
 import json
-import base64
+from DiffieHellman import DiffieHellman
+from Cryptodome.Protocol.KDF import PBKDF2
 from colorama import Fore, init
 from BD_creation import fazer_login, cadastrar_cliente, obter_apelidos
 
@@ -11,6 +12,23 @@ init(autoreset=True)
 # Dicionário para armazenar as conexões dos clientes e seus nomes
 clientes = {}
 group_clients = []
+
+def int_to_bytes(i):
+    return i.to_bytes((i.bit_length() + 7) // 8, byteorder='big')
+
+def derive_key_from_int(value):
+    # Converte o valor inteiro para bytes
+    value_bytes = int_to_bytes(value)
+
+    # Usa SHA-256 para derivar uma chave de 256 bits (32 bytes)
+    key = PBKDF2(value_bytes, b'', dkLen=32, count=1000000, prf=None)
+
+    return key
+
+# Geração da chave AES
+def genetare_AES_key(df_secret_value):
+    AES_key = derive_key_from_int(df_secret_value)
+    return AES_key
 
 def send_DF_message(sender_name, recipient_name, message):
     for address, connection_info in clientes.items():
@@ -106,6 +124,34 @@ def remove_client(client_address):
 
 def handle_client(client_socket, client_address):
     try:
+        client_key = ""
+        # Troca de chaves entre servidor e cliente
+        dh = DiffieHellman.DH()
+
+        data = client_socket.recv(1024).decode()
+        message = json.loads(data)
+
+        dh.base = message["base"]
+        dh.sharedPrime = message["prime"]
+        publicSecret = message["publicSecret"]
+
+        # Calcular o valor público gerado
+        calcedPubSecret = dh.calcPublicSecret()
+
+        # Enviar o valor calculado para o cliente que iniciou o processo diffie-hellman
+        message = { "publicSecret": calcedPubSecret }
+        
+        client_socket.send(json.dumps(message, ensure_ascii=False).encode())
+
+        # Calcular valor secreto
+        dh.calcSharedSecret(publicSecret)
+
+        # Gerar chave AES
+        AES_key = genetare_AES_key(dh.key)
+        client_key = AES_key
+        print(f"Chave gerada para este cliente: {Fore.YELLOW}{AES_key}{Fore.RESET}")
+
+
         while True:
             # Autenticação do cliente
             authentication_data = client_socket.recv(1024).decode()
