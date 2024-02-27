@@ -233,25 +233,33 @@ def authenticate_and_start_client():
     global group_list
     global is_in_group
 
-    # Autenticação do cliente
-    print(pyfiglet.figlet_format("Bem vindo!"))
-    name = input("[+] Informe seu username: ")
+    while True:
+        # Autenticação do cliente
+        print(pyfiglet.figlet_format("Bem vindo!"))
+        email = input("[+] Informe seu email: ")
+        password = input("[+] Informe sua senha: ")
 
-    auth_info = {
-        "name": name,
-    }
+        auth_info = {
+            "email": email,
+            "password": password,
+        }
 
-    client.send(json.dumps(auth_info).encode())
-    print("[+] Aguardando autenticação...")
+        client.send(json.dumps(auth_info).encode())
+        print("[+] Aguardando autenticação...")
 
-    authentication_response = client.recv(1024).decode()
+        authentication_response = client.recv(1024).decode()
 
-    if authentication_response != "authenticated":
-        print(f"{Fore.RED}[+] Falha na autenticação. Encerrando o cliente.{Fore.RESET}")
-        client.close()
-        exit()
+        message_info = json.loads(authentication_response)
+        logged = message_info.get("logged")
+        name = message_info.get("username")
 
-    print(f"[+] {Fore.GREEN}Autenticação bem-sucedida.{Fore.RESET} Conectado ao servidor.")
+        if not logged:
+            print(f"{Fore.RED}[+] Email ou senha inválidos. Tente novamente{Fore.RESET}")
+            continue
+        else:
+            print(f"[+] {Fore.GREEN}Autenticação bem-sucedida.{Fore.RESET} Conectado ao servidor.")
+            print(f"[+] Seja bem-vindo(a), {Fore.GREEN}{name}.")
+            break
 
     data = client.recv(1024).decode()
     clients_online = json.loads(data)

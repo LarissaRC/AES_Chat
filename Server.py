@@ -3,6 +3,7 @@ import threading
 import json
 import base64
 from colorama import Fore, init
+from BD_creation import fazer_login, cadastrar_cliente, obter_apelidos
 
 # Inicializa o colorama
 init(autoreset=True)
@@ -105,16 +106,33 @@ def remove_client(client_address):
 
 def handle_client(client_socket, client_address):
     try:
-        # Autenticação do cliente
-        authentication_data = client_socket.recv(1024).decode()
-        auth_info = json.loads(authentication_data)
+        while True:
+            # Autenticação do cliente
+            authentication_data = client_socket.recv(1024).decode()
+            auth_info = json.loads(authentication_data)
 
-        name = auth_info.get("name")
+            email = auth_info.get("email")
+            password = auth_info.get("password")
+
+            name = fazer_login(email, password)
+
+            if name == "":
+                # Envia sinal de autenticação mal-sucedida para o cliente
+                message_info = {
+                    "logged": False,
+                    "username": "",
+                }
+                client_socket.send(json.dumps(message_info).encode())
+            else:
+                # Envia sinal de autenticação bem-sucedida para o cliente
+                message_info = {
+                    "logged": True,
+                    "username": name,
+                }
+                client_socket.send(json.dumps(message_info).encode())
+                break
 
         print(f"[{client_address}] Autenticado como {Fore.YELLOW}{name}{Fore.RESET}")
-
-        # Envia sinal de autenticação bem-sucedida para o cliente
-        client_socket.send("authenticated".encode())
         
         clientes[client_address] = {"socket": client_socket, "name": name}
 
@@ -123,12 +141,6 @@ def handle_client(client_socket, client_address):
         for client in clientes:
             clients_names[clientes[client]["name"]] = clientes[client]["name"]
         client_socket.send(json.dumps(clients_names, ensure_ascii=False).encode())
-
-        '''
-        print("Clientes atualmente logados:")
-        for client in clientes:
-            print("- " + clientes[client]["name"])
-        '''
 
         while True:
             try:
